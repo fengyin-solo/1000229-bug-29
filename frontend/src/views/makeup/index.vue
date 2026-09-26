@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { request } from '@/api/client'
 
@@ -73,13 +73,18 @@ const ENDPOINT = '/api/makeup'
 const columns = ["方案编号", "角色名称", "造型风格", "特效需求", "化妆师", "试妆日期", "定妆照片", "方案状态"]
 const actions = ["提交方案", "安排试妆", "作废方案"]
 const statuses = ["待设计", "待试妆", "已定妆", "已作废"]
-const stats = [{"label": "待试妆方案", "value": 0}, {"label": "已定妆方案", "value": 0}, {"label": "特效妆造", "value": 0}]
 
 const rows = ref<Row[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+
+const stats = computed(() => [
+  { label: '待试妆方案', value: rows.value.filter((row) => row['方案状态'] === '待试妆').length },
+  { label: '已定妆方案', value: rows.value.filter((row) => row['方案状态'] === '已定妆').length },
+  { label: '特效妆造', value: rows.value.filter((row) => row['特效需求']).length },
+])
 
 function resetFilters() {
   filters.value = {}
@@ -99,10 +104,11 @@ async function runAction(action: string, row: Row) {
   try {
     const response = await request(`${ENDPOINT}/${row.id}/actions`, {
       method: 'POST',
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ values: { action } }),
     })
-    if (!response.ok) {
-      throw new Error('化妆造型动作未生效，请稍后重试')
+    const payload = (await response.json().catch(() => null)) as { ok?: boolean; message?: string } | null
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.message || '化妆造型动作未生效，请稍后重试')
     }
     await reload()
   } catch (error) {

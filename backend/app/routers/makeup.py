@@ -50,9 +50,9 @@ def create_entry(payload: EntryPayload) -> ActionResult:
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条妆造方案执行提交方案、安排试妆、作废方案；不允许的动作会被拦下并说明原因。"""
-    action = str(payload.values.get("action") or "").strip()
-    entry, message = service.run_action(entry_id, action)
+    """对单条妆造方案执行提交方案、安排试妆、作废方案；越级、覆盖终态或日期非法的请求都会被拦下并说明原因。"""
+    action = str(payload.values.get("action") or payload.action or "").strip()
+    entry, message = service.run_action(entry_id, action, payload.values)
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)

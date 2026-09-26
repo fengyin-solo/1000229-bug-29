@@ -101,8 +101,9 @@ async function runAction(action: string, row: Row) {
       method: 'POST',
       body: JSON.stringify({ action }),
     })
-    if (!response.ok) {
-      throw new Error('化妆造型动作未生效，请稍后重试')
+    const result = (await response.json()) as { ok?: boolean; message?: string }
+    if (!response.ok || !result.ok) {
+      throw new Error(result.message || '化妆造型动作未生效，请稍后重试')
     }
     await reload()
   } catch (error) {
